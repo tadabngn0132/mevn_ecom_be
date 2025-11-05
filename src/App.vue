@@ -3,20 +3,31 @@ import axios from "axios";
 import { ref, onMounted } from "vue";
 
 // Declare the backend API
-var backendAPI = "http://localhost:4000/api/product";
+// Use environment variable if available, otherwise use production URL
+const backendAPI =
+  import.meta.env.VITE_API_URL ||
+  "https://ecom-server-l301.onrender.com/api/product";
 
 // Data
 const data = ref(null);
+const loading = ref(false);
+const error = ref(null);
 
 // Methods
 const fetchProducts = () => {
+  loading.value = true;
+  error.value = null;
+
   axios
     .get(backendAPI)
     .then((response) => {
       data.value = response.data;
+      loading.value = false;
     })
     .catch((err) => {
-      console.log("Error loading product list: " + err);
+      console.error("Error loading product list:", err);
+      error.value = "Failed to load products. Please try again.";
+      loading.value = false;
     });
 };
 
@@ -29,7 +40,8 @@ const deleteProduct = (id) => {
         fetchProducts();
       })
       .catch((err) => {
-        console.error("Error deleting product:" + err);
+        console.error("Error deleting product:", err);
+        alert("Failed to delete product. Please try again.");
       });
   }
 };
@@ -104,7 +116,23 @@ const getTotalValue = () => {
           </div>
 
           <div class="table-wrapper">
-            <table class="products-table">
+            <!-- Loading State -->
+            <div v-if="loading" class="loading-state">
+              <div class="spinner"></div>
+              <p>Loading products...</p>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="error" class="error-state">
+              <span class="error-icon">⚠️</span>
+              <p>{{ error }}</p>
+              <button class="btn btn-retry" @click="fetchProducts">
+                Try Again
+              </button>
+            </div>
+
+            <!-- Products Table -->
+            <table v-else class="products-table">
               <thead>
                 <tr>
                   <th>Product</th>
@@ -398,6 +426,70 @@ const getTotalValue = () => {
 .btn-delete:hover {
   background: #ff5252;
   transform: scale(1.05);
+}
+
+.btn-retry {
+  background: #667eea;
+  color: white;
+  margin-top: 1rem;
+}
+
+.btn-retry:hover {
+  background: #5568d3;
+  transform: scale(1.05);
+}
+
+/* Loading State */
+.loading-state {
+  padding: 4rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+/* Error State */
+.error-state {
+  padding: 4rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.error-icon {
+  font-size: 4rem;
+}
+
+.error-state p {
+  color: #dc3545;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
 /* Empty State */
